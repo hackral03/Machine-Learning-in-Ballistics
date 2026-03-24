@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cunniff Ballistic Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:   #eff2f6;
+    --panel:   #f1f3f7;
+    --panel2:  #e0e4ea;
+    --black:   #1e2d3d;
+    --accent:  #00d4ff;
+    --accent2: #ff6b35;
+    --text:    #c9d6e3;
+    --muted:   #4a5f74;
+    --success: #ff0000;
+    --warn:    #ffd166;
+    --mono:    'Share Tech Mono', monospace;
+    --sans:    'Barlow', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--white); color: var(--white);
+    font-family: var(--sans); font-size: 13px;
+    min-height: 100vh; display: flex;
+    align-items: flex-start; justify-content: center;
+    padding: 24px 16px;
+  }
+  .container {
+    width: 540px; background: var(--white);
+    border: 1px solid var(--border); border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,212,255,0.07), 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .header {
+    background: linear-gradient(135deg, #0d1f2d, #0a1520);
+    border-bottom: 1px solid var(--black);
+    padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+    position: relative;
+  }
+  .header::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .header-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), #0088aa);
+    border-radius: 3px; display: flex; align-items: center;
+    justify-content: center; font-size: 17px; flex-shrink: 0;
+    box-shadow: 0 0 14px rgba(0,212,255,0.3);
+  }
+  .header-text h1 { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+  .header-text p  { font-size: 11px; color: var(--white); margin-top: 2px; font-weight: 300; }
+  .scan-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.3; animation: scan 3s ease-in-out infinite;
+  }
+  @keyframes scan { 0%,100%{opacity:.08;transform:scaleX(.3)} 50%{opacity:.4;transform:scaleX(1)} }
+
+  .body { padding: 18px 20px; }
+
+  .mode-toggle {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 5px; margin-bottom: 18px;
+    background: var(--bg); padding: 4px;
+    border-radius: 4px; border: 1px solid var(--black);
+  }
+  .mode-btn {
+    padding: 8px; background: transparent; border: none;
+    border-radius: 3px; color: var(--muted);
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 1px; cursor: pointer;
+    text-transform: uppercase; transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: linear-gradient(135deg, rgba(0,212,255,.15), rgba(0,212,255,.05));
+    color: var(--accent); border: 1px solid rgba(0,212,255,.3);
+    box-shadow: 0 0 8px rgba(0,212,255,.1);
+  }
+
+  .section-label {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent2); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--black), transparent);
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(0,212,255,.12); border: 1px solid rgba(0,212,255,.25);
+    color: var(--accent); font-family: var(--mono); font-size: 9px;
+    letter-spacing: 1px; padding: 1px 7px; border-radius: 10px; margin-left: 6px;
+  }
+
+  .ref-table-wrap {
+    background: var(--panel2); border: 1px solid var(--black);
+    border-radius: 3px; overflow-x: auto; margin-bottom: 8px;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 460px; }
+  thead th { border-right: 1px solid var(--black); }
+  thead th:last-child { border-right: none; }
+  tbody td { border-right: 1px solid var(--black); }
+  tbody td:last-child { border-right: none; }
+  thead tr { border-bottom: 1px solid var(--black); }
+  thead th {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); padding: 8px 7px 6px;
+    text-align: left; font-weight: 400; white-space: nowrap;
+  }
+  thead th .th-unit { color: #253545; display: block; font-size: 8px; }
+  tbody tr { border-bottom: 1px solid rgba(30,45,61,.5); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(0,212,255,.03); }
+  tbody td { padding: 3px 3px; }
+  tbody td input {
+    background: transparent; border: 1px solid transparent;
+    border-radius: 2px; color: var(--black);
+    font-family: var(--mono); font-size: 12px;
+    padding: 5px 6px; width: 100%; outline: none;
+    transition: all 0.15s; min-width: 62px;
+  }
+  tbody td input:focus {
+    border-color: rgba(0,212,255,.35);
+    background: rgba(0,212,255,.04); color: var(--accent);
+  }
+  tbody td input::placeholder { color: #253545; }
+  .del-btn {
+    background: transparent; border: none; color: #2a3d4d;
+    cursor: pointer; font-size: 14px; padding: 4px 6px;
+    border-radius: 2px; transition: all 0.15s;
+    display: block; width: 100%; text-align: center;
+  }
+  .del-btn:hover { color: var(--accent2); background: rgba(255,107,53,.08); }
+
+  .add-row-btn {
+    width: 100%; padding: 7px; background: transparent;
+    border: 1px dashed var(--black); border-radius: 3px;
+    color: var(--muted); font-family: var(--mono); font-size: 11px;
+    letter-spacing: 1px; cursor: pointer; transition: all 0.2s; margin-bottom: 14px;
+  }
+  .add-row-btn:hover {
+    border-color: rgba(0,212,255,.3); color: var(--accent);
+    background: rgba(245, 247, 248, 0.04);
+  }
+
+  /* Fit summary strip */
+  .fit-strip {
+    display: none; margin-bottom: 14px;
+    background: rgba(255,209,102,.05);
+    border: 1px solid rgba(255,209,102,.2);
+    border-radius: 3px; padding: 9px 14px;
+    display: none; gap: 0; flex-direction: column;
+  }
+  .fit-strip.visible { display: flex; }
+  .fit-strip-title {
+    font-family: var(--mono); font-size: 9px;
+    letter-spacing: 2px; color: var(--black);
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .fit-strip-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .fit-item { display: flex; flex-direction: column; gap: 2px; }
+  .fit-item-label { font-size: 9px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+  .fit-item-val   { font-family: var(--mono); font-size: 12px; color: var(--black); }
+
+  .divider {
+    height: 1px; background: var(--black); margin: 16px 0; position: relative;
+  }
+  .divider::after {
+    content: '▼'; position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%,-50%); background: var(--panel);
+    color: var(--muted); font-size: 10px; padding: 0 8px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .field  { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 10px; color: var(--muted); letter-spacing: .5px; font-weight: 600; text-transform: uppercase; }
+  .field .unit { font-family: var(--mono); font-size: 9px; color: #2a4a5a; }
+  .field input {
+    background: var(--white); border: 1px solid var(--black);
+    border-radius: 3px; color: var(--black);
+    font-family: var(--mono); font-size: 13px;
+    padding: 8px 10px; outline: none; transition: all 0.2s; width: 100%;
+  }
+  .field input:focus {
+    border-color: rgba(0,212,255,.4);
+    box-shadow: 0 0 0 2px rgba(0,212,255,.06); color: var(--accent);
+  }
+  .field input::placeholder { color: #2a3d4d; }
+  .ad-field  { display: none; }
+  .ad-field.visible  { display: flex; flex-direction: column; gap: 4px; }
+  .v50-field { display: none; }
+  .v50-field.visible { display: flex; flex-direction: column; gap: 4px; }
+
+  .calc-btn {
+    width: 100%; padding: 12px;
+    background: linear-gradient(135deg, rgba(0,212,255,.12), rgba(0,212,255,.06));
+    border: 1px solid rgba(0,212,255,.3); border-radius: 3px;
+    color: var(--accent); font-family: var(--mono); font-size: 12px;
+    letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+    transition: all 0.2s; margin-top: 14px; position: relative; overflow: hidden;
+  }
+  .calc-btn:hover {
+    background: linear-gradient(135deg, rgba(0,212,255,.2), rgba(0,212,255,.1));
+    box-shadow: 0 0 20px rgba(0,212,255,.2); letter-spacing: 4px;
+  }
+  .calc-btn:active { transform: scale(.99); }
+  .calc-btn::after {
+    content: ''; position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.05), transparent);
+    transition: left .4s;
+  }
+  .calc-btn:hover::after { left: 100%; }
+
+  .result-panel {
+    margin-top: 16px; background: var(--white);
+    border: 1px solid var(--black); border-radius: 4px;
+    overflow: hidden; display: none;
+  }
+  .result-panel.visible { display: block; animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .result-header {
+    background: linear-gradient(135deg, rgba(0,255,157,.08), rgba(0,255,157,.03));
+    border-bottom: 1px solid rgba(0,255,157,.15);
+    padding: 8px 14px; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 2px; color: var(--success); text-transform: uppercase;
+  }
+  .result-body { padding: 14px; }
+  .result-value {
+    font-family: var(--mono); font-size: 30px; color: var(--success);
+    letter-spacing: 1px; line-height: 1;
+  }
+  .result-unit { font-family: var(--mono); font-size: 12px; color: var(--success); margin-top: 4px; }
+  .result-params {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--black);
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+  }
+  .param-item { display: flex; flex-direction: column; gap: 2px; }
+  .param-label { font-size: 9px; color: var(--black); letter-spacing: 1px; text-transform: uppercase; font-family: var(--mono); }
+  .param-value { font-family: var(--mono); font-size: 12px; color: var(--black); }
+
+  .error-panel {
+    margin-top: 12px; padding: 10px 14px;
+    background: rgba(255,107,53,.08); border: 1px solid rgba(255,107,53,.3);
+    border-radius: 3px; color: var(--accent2);
+    font-family: var(--mono); font-size: 11px; display: none;
+  }
+  .error-panel.visible { display: block; }
+
+  .footer {
+    padding: 10px 20px; border-top: 1px solid var(--black);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .footer-left { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+  .status-dot {
+    width: 6px; height: 6px; background: var(--success);
+    border-radius: 50%; box-shadow: 0 0 6px var(--success);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-icon">⬡</div>
+    <div class="header-text">
+      <h1>Cunniff Model</h1>
+      <p>Ballistic Limit Calculator</p>
+    </div>
+  </div>
+  <div class="scan-line"></div>
+
+  <div class="body">
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btn-v50" onclick="setMode(1)">V50 Calculator</button>
+      <button class="mode-btn"        id="btn-ad"  onclick="setMode(2)">AD Calculator</button>
+    </div>
+
+    <!-- Reference table -->
+    <div class="section-label">
+      Reference Material
+      <span class="badge" id="row-badge">0 rows</span>
+    </div>
+
+    <div class="ref-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><span>Tensile Strength</span><span class="th-unit">g/den</span></th>
+            <th><span>Young's Modulus</span><span class="th-unit">g/den</span></th>
+            <th><span>Density</span><span class="th-unit">kg/m³</span></th>
+            <th><span>Areal Density</span><span class="th-unit">kg/m²</span></th>
+            <th><span>V50</span><span class="th-unit">m/s</span></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ref-tbody"></tbody>
+      </table>
+    </div>
+
+    <button class="add-row-btn" onclick="addRow()">+ Add Reference Row</button>
+
+    <!-- Curve fit strip — updates live -->
+    <div class="fit-strip" id="fit-strip">
+      <div class="fit-strip-title">Curve Fit  ·  V50* = K × AD^n,  V50* = V50/(U*)^1/3</div>
+      <div class="fit-strip-row">
+        <div class="fit-item"><span class="fit-item-label">K</span><span class="fit-item-val" id="fs-K">—</span></div>
+        <div class="fit-item"><span class="fit-item-label">n</span><span class="fit-item-val" id="fs-n">—</span></div>
+        <div class="fit-item"><span class="fit-item-label">R²</span><span class="fit-item-val" id="fs-R2">—</span></div>
+        <div class="fit-item"><span class="fit-item-label">MAE (m/s)</span><span class="fit-item-val" id="fs-MAE">—</span></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Target inputs -->
+    <div class="section-label">Target Material</div>
+    <div class="grid-2">
+      <div class="field">
+        <label>Tensile Strength <span class="unit">g/denier</span></label>
+        <input type="number" id="tgt_sigma" step="any">
+      </div>
+      <div class="field">
+        <label>Young's Modulus <span class="unit">g/denier</span></label>
+        <input type="number" id="tgt_E" step="any">
+      </div>
+      <div class="field">
+        <label>Density <span class="unit">kg/m³</span></label>
+        <input type="number" id="tgt_rho" step="any">
+      </div>
+      <div class="field ad-field visible" id="ad-input-field">
+        <label>Areal Density <span class="unit">kg/m²</span></label>
+        <input type="number" id="tgt_AD" step="any">
+      </div>
+      <div class="field v50-field" id="v50-input-field">
+        <label>V50 <span class="unit">m/s</span></label>
+        <input type="number" id="tgt_V50" step="any">
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">Calculate</button>
+
+    <div class="error-panel" id="error-panel"></div>
+
+    <div class="result-panel" id="result-panel">
+      <div class="result-header" id="result-header">── Result ──</div>
+      <div class="result-body">
+        <div class="result-value" id="result-value">—</div>
+        <div class="result-unit"  id="result-unit">—</div>
+        <div class="result-params">
+          <div class="param-item">
+            <span class="param-label">Ref rows</span>
+            <span class="param-value" id="p-nrows">—</span>
+          </div>
+          <div class="param-item">
+            <span class="param-label">K (fitted)</span>
+            <span class="param-value" id="p-K">—</span>
+          </div>
+          <div class="param-item">
+            <span class="param-label">n (fitted)</span>
+            <span class="param-value" id="p-n">—</span>
+          </div>
+          <div class="param-item">
+            <span class="param-label">U* target</span>
+            <span class="param-value" id="p-ustar-new">—</span>
+          </div>
+          <div class="param-item">
+            <span class="param-label">(U*)^1/3 target</span>
+            <span class="param-value" id="p-ucbrt-new">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let mode  = 1;
+  let rowId = 0;
+
+  // ── U* ────────────────────────────────────────────────────────────
+  function Ustar(sigma, E, rho) {
+    const sigma_Pa = sigma * 88260 * rho;
+    const E_Pa     = E     * 88260 * rho;
+    const epsilon  = sigma_Pa / E_Pa;   // = sigma/E (conversion cancels)
+    const c        = Math.sqrt(E_Pa / rho);
+    return { U: (sigma_Pa * epsilon) / (2.0 * rho) * c, epsilon };
+  }
+
+  // ── Log-log linear regression (polyfit degree 1) ──────────────────
+  // Fits  ln(y) = B*ln(x) + ln(A)  →  returns {A, B}
+  function fitPowerLaw(xArr, yArr) {
+    const l      = xArr.length;
+    const lx     = xArr.map(Math.log);
+    const ly     = yArr.map(Math.log);
+    const meanLx = lx.reduce((a,b)=>a+b,0) / l;
+    const meanLy = ly.reduce((a,b)=>a+b,0) / l;
+    const Sxx    = lx.reduce((s,x)=>s+(x-meanLx)**2, 0);
+    const Sxy    = lx.reduce((s,x,i)=>s+(x-meanLx)*(ly[i]-meanLy), 0);
+    const n      = Sxy / Sxx;
+    const logK   = meanLy - n * meanLx;
+    return { K: Math.exp(logK), n: n };
+  }
+
+  // ── Get all complete reference rows ──────────────────────────────
+  function getRows() {
+    const rows = [];
+    document.querySelectorAll('#ref-tbody tr').forEach(tr => {
+      const rid = tr.dataset.rid;
+      const g   = f => parseFloat(document.getElementById(`r${rid}_${f}`)?.value);
+      const row = { sigma: g('sigma'), E: g('E'), rho: g('rho'), AD: g('AD'), V50: g('V50') };
+      if (Object.values(row).every(v => !isNaN(v) && v > 0)) rows.push(row);
+    });
+    return rows;
+  }
+
+  // ── Refit A and B from current reference rows and update strip ────
+  function refit() {
+    const rows  = getRows();
+    const total = document.querySelectorAll('#ref-tbody tr').length;
+    document.getElementById('row-badge').textContent =
+      total + ' row' + (total!==1?'s':'') +
+      (rows.length < total && total > 0 ? ` · ${rows.length} complete` : '');
+
+    const strip = document.getElementById('fit-strip');
+    if (rows.length < 2) { strip.classList.remove('visible'); return; }
+
+    // Compute U* and V50* per row
+    const Ucbrts  = rows.map(r => Ustar(r.sigma, r.E, r.rho).U ** (1/3));
+    const V50stars = rows.map((r,i) => r.V50 / Ucbrts[i]);
+    const ADs      = rows.map(r => r.AD);
+
+    const { K, n } = fitPowerLaw(ADs, V50stars);
+
+    // Goodness of fit
+    const V50fit = rows.map((r,i) => K * r.AD**n * Ucbrts[i]);
+    const V50act = rows.map(r => r.V50);
+    const meanV  = V50act.reduce((a,b)=>a+b,0) / V50act.length;
+    const ss_res = V50act.reduce((s,v,i)=>s+(v-V50fit[i])**2, 0);
+    const ss_tot = V50act.reduce((s,v)=>s+(v-meanV)**2, 0);
+    const R2     = 1 - ss_res/ss_tot;
+    const MAE    = V50act.reduce((s,v,i)=>s+Math.abs(v-V50fit[i]),0) / V50act.length;
+
+    document.getElementById('fs-K'  ).textContent = K.toFixed(5);
+    document.getElementById('fs-n'  ).textContent = n.toFixed(5);
+    document.getElementById('fs-R2' ).textContent = R2.toFixed(4);
+    document.getElementById('fs-MAE').textContent = MAE.toFixed(2);
+    strip.classList.add('visible');
+
+    return { K, n };
+  }
+
+  // ── Add reference row ─────────────────────────────────────────────
+  function addRow(d) {
+    const tbody = document.getElementById('ref-tbody');
+    const id    = ++rowId;
+    const tr    = document.createElement('tr');
+    tr.id       = 'row-' + id;
+    tr.dataset.rid = id;
+    d = d || {};
+
+    const cols = [
+      {f:'sigma'}, {f:'E'},
+      {f:'rho'},   {f:'AD'},
+      {f:'V50'}
+    ];
+    tr.innerHTML = cols.map(c =>
+      `<td><input type="number" step="any" id="r${id}_${c.f}"
+           placeholder="${c.ph}" value="${d[c.f]||''}"
+           oninput="refit()"></td>`
+    ).join('') +
+    `<td><button class="del-btn" onclick="delRow(${id})">✕</button></td>`;
+
+    tbody.appendChild(tr);
+    refit();
+  }
+
+  function delRow(id) {
+    document.getElementById('row-' + id)?.remove();
+    refit();
+  }
+
+  // ── Mode toggle ───────────────────────────────────────────────────
+  function setMode(m) {
+    mode = m;
+    document.getElementById('btn-v50').classList.toggle('active', m===1);
+    document.getElementById('btn-ad' ).classList.toggle('active', m===2);
+    document.getElementById('ad-input-field' ).classList.toggle('visible', m===1);
+    document.getElementById('v50-input-field').classList.toggle('visible', m===2);
+    document.getElementById('result-panel').classList.remove('visible');
+    document.getElementById('error-panel').classList.remove('visible');
+  }
+
+  function showError(msg) {
+    document.getElementById('error-panel').textContent = '⚠  ' + msg;
+    document.getElementById('error-panel').classList.add('visible');
+    document.getElementById('result-panel').classList.remove('visible');
+  }
+
+  // ── Main calculation ──────────────────────────────────────────────
+  function calculate() {
+    document.getElementById('error-panel').classList.remove('visible');
+    document.getElementById('result-panel').classList.remove('visible');
+
+    const rows = getRows();
+    if (rows.length < 2) {
+      showError('Need at least 2 complete reference rows to fit A and B.'); return;
+    }
+
+    const fit = refit();
+    const { K, n } = fit;
+
+    const get = id => parseFloat(document.getElementById(id).value);
+    const tgt_sigma = get('tgt_sigma');
+    const tgt_E     = get('tgt_E');
+    const tgt_rho   = get('tgt_rho');
+
+    if ([tgt_sigma, tgt_E, tgt_rho].some(v => isNaN(v)||v<=0)) {
+      showError('Fill all target material fields with positive values.'); return;
+    }
+
+    const tgt    = Ustar(tgt_sigma, tgt_E, tgt_rho);
+    const Ucbrt_new = tgt.U ** (1/3);
+
+    let resultVal, resultUnit, resultLabel;
+
+    if (mode === 1) {
+      const tgt_AD = get('tgt_AD');
+      if (isNaN(tgt_AD)||tgt_AD<=0) { showError('Enter a valid target Areal Density.'); return; }
+      // V50_new = K × AD_new^n × (U*_new)^(1/3)
+      resultVal   = K * Math.pow(tgt_AD, n) * Ucbrt_new;
+      resultUnit  = 'm/s';
+      resultLabel = 'PREDICTED V50';
+    } else {
+      const tgt_V50 = get('tgt_V50');
+      if (isNaN(tgt_V50)||tgt_V50<=0) { showError('Enter a valid target V50.'); return; }
+      // AD_new = (V50_new / (K × (U*_new)^(1/3))) ^ (1/n)
+      resultVal   = Math.pow(tgt_V50 / (K * Ucbrt_new), 1/n);
+      resultUnit  = 'kg/m²';
+      resultLabel = 'PREDICTED AREAL DENSITY';
+    }
+
+    document.getElementById('result-header').textContent = '── ' + resultLabel + ' ──';
+    document.getElementById('result-value').textContent  = resultVal.toFixed(3);
+    document.getElementById('result-unit').textContent   = resultUnit;
+    document.getElementById('p-nrows').textContent       = rows.length;
+    document.getElementById('p-K').textContent           = K.toFixed(5);
+    document.getElementById('p-n').textContent           = n.toFixed(5);
+    document.getElementById('p-ustar-new').textContent   = tgt.U.toExponential(3);
+    document.getElementById('p-ucbrt-new').textContent   = Ucbrt_new.toFixed(4);
+    document.getElementById('result-panel').classList.add('visible');
+  }
+
+  
+
+  document.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); });
+</script>
+</body>
+</html>
